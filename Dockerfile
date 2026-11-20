@@ -49,6 +49,9 @@ RUN npm install -g corepack
 RUN corepack enable
 RUN corepack prepare pnpm@9.12.2 --activate
 
+# bun
+RUN npm install -g bun@1
+
 # gvm (installs under the vscode user so it lands in ~vscode/.gvm)
 RUN su - vscode -c 'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | bash'
 

@@ -15,10 +15,21 @@ elif [ -f "requirements.txt" ]; then
   uv pip install -r requirements.txt || true
 fi
 
-# node project
-if [ -f "package.json" ]; then
+# js project (bun takes precedence when a bun lockfile exists)
+if [ -f "bun.lock" ] || [ -f "bun.lockb" ]; then
+  echo "📦 Bun project detected"
+  bun install || true
+elif [ -f "package.json" ]; then
   echo "📦 Node project detected"
   pnpm install || true
+fi
+
+# playwright browsers (only when the project uses it)
+if [ -f "package.json" ] && grep -q 'playwright' package.json; then
+  echo "🎭 Playwright detected, installing chromium"
+  if command -v bunx >/dev/null 2>&1; then PW=bunx; else PW=npx; fi
+  $PW playwright install-deps chromium 2>/dev/null || sudo $PW playwright install-deps chromium || true
+  $PW playwright install chromium || true
 fi
 
 # pre-commit
