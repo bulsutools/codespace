@@ -49,15 +49,29 @@ RUN npm install -g corepack
 RUN corepack enable
 RUN corepack prepare pnpm@9.12.2 --activate
 
-# gvm
-RUN curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | bash
+# gvm (installs under the vscode user so it lands in ~vscode/.gvm)
+RUN su - vscode -c 'curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | bash'
 
 # oh-my-zsh
 RUN su - vscode -c 'set -e; RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended' \
     && ls -la /home/vscode/.zshrc
 
-# pre-commit
-RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.8/prek-installer.sh | sh
+# shell init: gvm
+RUN echo '[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"' >> /home/vscode/.zshrc
+
+# prek (pre-commit) -> /usr/local/bin so every user gets it
+RUN arch="$(dpkg --print-architecture)"; \
+    case "$arch" in amd64) p=x86_64 ;; arm64) p=aarch64 ;; *) echo "unsupported arch: $arch" >&2; exit 1 ;; esac; \
+    curl -fsSL "https://github.com/j178/prek/releases/download/v0.4.8/prek-${p}-unknown-linux-gnu.tar.gz" -o /tmp/prek.tgz && \
+    tar -xzf /tmp/prek.tgz -C /tmp && \
+    find /tmp -maxdepth 3 -type f -name 'prek' -exec install -m 755 {} /usr/local/bin/prek \; && \
+    rm -rf /tmp/prek*
+
+# --------------------------------------------------
+# codespace lifecycle scripts (on PATH for devcontainers)
+# --------------------------------------------------
+COPY scripts/codespace-post-create scripts/codespace-post-start /usr/local/bin/
+RUN chmod +x /usr/local/bin/codespace-post-create /usr/local/bin/codespace-post-start
 
 
 # --------------------------------------------------
